@@ -173,12 +173,18 @@ function bindAll() {
 
 // ---------------------------------------------------------------- 互动：定时提醒
 
-// 用户选中的分钟数只是"待发射"的值, 真正生效的是 config 里的 remindAt 绝对时间戳
-let remindMinutes = 15;
+// 用户选中的时长只是"待发射"的值, 真正生效的是 config 里的 remindAt 绝对时间戳
+let remindMs = 900000;   // 默认 15 分钟
+
+function formatMs(ms) {
+  if (ms < 60000) return Math.round(ms / 1000) + ' 秒';
+  const m = Math.round(ms / 60000);
+  return m >= 60 ? (m / 60) + ' 小时' : m + ' 分钟';
+}
 
 function syncRemindChips() {
   document.querySelectorAll('#remind-chips .chip').forEach((chip) => {
-    chip.classList.toggle('on', Number(chip.dataset.min) === remindMinutes);
+    chip.classList.toggle('on', Number(chip.dataset.ms) === remindMs);
   });
 }
 
@@ -212,8 +218,8 @@ function tickRemind() {
 function bindReminder() {
   document.querySelectorAll('#remind-chips .chip').forEach((chip) => {
     chip.addEventListener('click', () => {
-      remindMinutes = Number(chip.dataset.min);
-      $('o-remind-min').textContent = remindMinutes + ' 分钟';
+      remindMs = Number(chip.dataset.ms);
+      $('o-remind-min').textContent = formatMs(remindMs);
       syncRemindChips();
     });
   });
@@ -228,7 +234,7 @@ function bindReminder() {
     const v = $('i-remind-text').value.trim() || '时间到了！';
     state.cfg.remindText = v;
     window.petAPI.panelSet({
-      remindAt: Date.now() + remindMinutes * 60000,
+      remindAt: Date.now() + remindMs,
       remindText: v
     });
   });

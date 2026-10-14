@@ -54,6 +54,11 @@ let hitW = 0;
 let hitH = 0;
 let hitData = null;
 
+// 右键菜单开着的时候, 主进程把整个窗口临时设成了不穿透(让点在菜单外的
+// 点击能被菜单的模态循环收到、从而关掉菜单)。这期间 hover 逻辑不能插手
+// 穿透开关, 否则会把窗口又设回穿透, 菜单又关不掉了。
+let menuOpen = false;
+
 let ignoring = true;
 let hovering = false;
 const cursor = { x: -99999, y: -99999 };
@@ -103,7 +108,9 @@ window.petAPI.onCmd((cmd) => {
     pet.y = (window.innerHeight - box.boxH) / 2;
     goIdle(0.8);
   } else if (cmd.type === 'click-through-changed') {
-    // 主进程刚改过穿透开关, 把本地状态对齐, 免得两边打架
+    // 主进程刚改过穿透开关(面板勾选, 或者右键菜单刚关掉、状态恢复),
+    // 把本地状态对齐, 免得两边打架
+    menuOpen = false;
     ignoring = !!cmd.value;
     hovering = false;
     setIgnore(ignoring);
@@ -427,7 +434,7 @@ function setIgnore(next) {
 }
 
 function updateHover() {
-  if (dragging) return;
+  if (dragging || menuOpen) return;
   // 光标不动但虫子爬过来时, 这里也能把状态纠正过来
   const over = hitTest(cursor.x, cursor.y);
   if (over === hovering) return;
@@ -449,6 +456,8 @@ window.addEventListener('mouseleave', () => {
 
 canvas.addEventListener('pointerdown', (e) => {
   if (e.button !== 0) return;
+  // 菜单开着: 这次点击是用来关菜单的, 别顺手把虫子拎走(也不会触发戳一下)
+  if (menuOpen) return;
   if (!hitTest(e.clientX, e.clientY)) return;
   dragging = true;
   moved = false;
@@ -496,6 +505,8 @@ window.addEventListener('blur', () => { if (dragging) endDrag(null); });
 
 canvas.addEventListener('contextmenu', (e) => {
   e.preventDefault();
+  // 主进程随即把窗口临时设为不穿透; 恢复时会发 click-through-changed 清掉这个标记
+  menuOpen = true;
   window.petAPI.openMenu();
 });
 

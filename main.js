@@ -59,6 +59,17 @@ const NOSANDBOX_FLAG = '--minipet-nosandbox';
 const alreadyFellBack = process.argv.includes(NOSANDBOX_FLAG);
 let crashing = false;
 
+// 定时提醒预设。第一个是 10 秒 —— 用户要的快速档, 点完就能盯着看气泡,
+// 不用等 5 分钟。菜单和控制选项共用同一份清单。
+const REMIND_PRESETS = [
+  { label: '10 秒后', ms: 10 * 1000 },
+  { label: '5 分钟后', ms: 5 * 60000 },
+  { label: '15 分钟后', ms: 15 * 60000 },
+  { label: '25 分钟后', ms: 25 * 60000 },
+  { label: '45 分钟后', ms: 45 * 60000 },
+  { label: '1 小时后', ms: 60 * 60000 }
+];
+
 function crashExit(reason) {
   if (crashing || alreadyFellBack) return;
   crashing = true;
@@ -502,14 +513,14 @@ function buildMenuTemplate() {
       click: (item) => applyConfig({ autoStart: item.checked }, 'menu')
     },
     {
-      // 互动栏的定时提醒: 和控制选项里同一套预设 (5/15/25/45/60 分钟)。
-      // 提醒语沿用控制选项里设的那句, 菜单这里只负责"多久之后", 不重复输入。
+      // 互动栏的定时提醒: 和控制选项里同一套预设。第一个是 10 秒, 专门用来
+      // 快速验证"到点冒气泡"整条链路; 提醒语沿用控制选项里设的那句。
       label: '定时提醒',
       submenu: [
-        ...[5, 15, 25, 45, 60].map((min) => ({
-          label: (min % 60 === 0 ? (min / 60) + ' 小时' : min + ' 分钟') + '后',
+        ...REMIND_PRESETS.map((p) => ({
+          label: p.label,
           click: () => applyConfig({
-            remindAt: Date.now() + min * 60000,
+            remindAt: Date.now() + p.ms,
             remindText: cfg.remindText || '时间到了！'
           }, 'menu')
         })),
@@ -557,7 +568,35 @@ function buildMenuTemplate() {
 
 function popupMenu() {
   if (!win || win.isDestroyed()) return;
-  Menu.buildFromTemplate(buildMenuTemplate()).popup({ window: win });
+  // 菜单开着期间临时关掉鼠标穿透 —— 这是"点哪儿都能关菜单"的关键。
+  // 背景: 虫窗除了虫身那一小块, 其余全是鼠标穿透的。点在菜单以外的地方,
+  // 点击会被"转发"给下面的窗口, 菜单的模态循环根本收不到这次点击, 于是
+  // 菜单永远不关, 用户只能点回虫身(唯一把点击交给本窗口的区域)才关得掉。
+  // 整块窗口都收点击之后, 点在菜单外的点击才会被模态循环当成"取消"。
+  // 菜单项照样点得动: popup 的 window 参数让菜单成为本窗口的 owned 窗口,
+  // owned 窗口在 z 序上恒在 owner 之上, 菜单区域里的点击先命中菜单自己。
+  // 副作用(可接受): 菜单开着的时候点击不会穿透到别的应用 —— 这正是模态菜单
+  // 该有的行为, 和系统里任何右键菜单一样。
+  const restoreThrough = cfg.clickThrough !== false;
+  if (restoreThrough) win.setIgnoreMouseEvents(false);
+
+  const finish = () => {
+    if (restoreThrough && win && !win.isDestroyed()) {
+      win.setIgnoreMouseEvents(true, { forward: true });
+      // 渲染进程缓存了 ignoring/hovering, 这条命令让它重新对齐
+      sendCmd('click-through-changed', { value: true });
+    }
+  };
+
+  try {
+    Menu.buildFromTemplate(buildMenuTemplate()).popup({
+      window: win,
+      callback: finish   // 菜单关闭时恢复穿透(sync / async 两种模式都走这里)
+    });
+  } catch (err) {
+    console.error('弹出右键菜单失败:', err.message);
+    finish();   // 别把窗口留在不穿透的状态
+  }
 }
 
 /** 配置变了以后刷新托盘菜单, 让勾选状态跟着走 */
