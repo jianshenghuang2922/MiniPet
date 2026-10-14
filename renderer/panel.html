@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="Content-Security-Policy"
+        content="default-src 'none'; img-src 'self' file: data:; media-src 'self' file:; style-src 'self' file: 'unsafe-inline'; script-src 'self' file:;" />
+  <title>MiniPet 控制选项</title>
+  <link rel="stylesheet" href="panel.css" />
+</head>
+<body>
+  <div class="app">
+
+    <header class="titlebar">
+      <div class="brand">
+        <span class="brand-mark"></span>
+        <span class="brand-text">MiniPet 控制选项</span>
+      </div>
+      <button class="win-btn" id="btn-close" title="关闭">
+        <svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true">
+          <path d="M1 1 L9 9 M9 1 L1 9" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+        </svg>
+      </button>
+    </header>
+
+    <section class="stage" id="stage">
+      <video id="bgvideo" src="../assets/preview-bg.mp4" muted autoplay loop playsinline></video>
+      <canvas id="preview"></canvas>
+      <div class="stage-tag" id="stage-tag">1:1</div>
+      <button class="stage-toggle" id="btn-bg" title="开关预览背景">背景</button>
+    </section>
+
+    <div class="remind-strip">
+      <span class="strip-badge" id="remind-badge">互动</span>
+      <span class="strip-text" id="remind-strip-text">定时提醒，到点虫子会喊出来</span>
+      <button class="strip-btn" id="btn-remind-cancel" hidden>取消</button>
+    </div>
+
+    <div class="body">
+
+      <section class="group">
+        <h2 class="group-title">外观</h2>
+
+        <div class="field">
+          <div class="field-head">
+            <label for="s-size">大小</label>
+            <output id="o-size">150 px</output>
+          </div>
+          <input type="range" id="s-size" min="60" max="480" step="2" />
+          <div class="chips" data-target="s-size">
+            <button class="chip" data-value="90">很小</button>
+            <button class="chip" data-value="150">小</button>
+            <button class="chip" data-value="220">中</button>
+            <button class="chip" data-value="320">大</button>
+            <button class="chip" data-value="440">巨大</button>
+          </div>
+        </div>
+
+        <div class="field">
+          <div class="field-head">
+            <label for="s-opacity">不透明度</label>
+            <output id="o-opacity">100%</output>
+          </div>
+          <input type="range" id="s-opacity" min="0.2" max="1" step="0.01" />
+        </div>
+
+        <label class="switch">
+          <input type="checkbox" id="c-shadow" />
+          <span class="track"><span class="knob"></span></span>
+          <span class="switch-text">投影</span>
+        </label>
+
+        <div class="field indent">
+          <div class="field-head">
+            <label for="s-shadow">投影强度</label>
+            <output id="o-shadow">12</output>
+          </div>
+          <input type="range" id="s-shadow" min="0" max="40" step="1" />
+        </div>
+      </section>
+
+      <section class="group">
+        <h2 class="group-title">行为</h2>
+
+        <div class="field">
+          <div class="field-head">
+            <label for="s-speed">速度</label>
+            <output id="o-speed">55 px/s</output>
+          </div>
+          <input type="range" id="s-speed" min="0" max="300" step="1" />
+          <div class="chips" data-target="s-speed">
+            <button class="chip" data-value="22">慢吞吞</button>
+            <button class="chip" data-value="55">正常</button>
+            <button class="chip" data-value="110">挺快</button>
+            <button class="chip" data-value="220">起飞</button>
+          </div>
+        </div>
+
+        <label class="switch">
+          <input type="checkbox" id="c-wander" />
+          <span class="track"><span class="knob"></span></span>
+          <span class="switch-text">自动漫步</span>
+        </label>
+
+        <div class="field indent">
+          <div class="field-head">
+            <label for="s-idlemin">发呆时长</label>
+            <output id="o-idle">2.0 ~ 7.0 秒</output>
+          </div>
+          <input type="range" id="s-idlemin" min="0" max="15" step="0.5" />
+          <input type="range" id="s-idlemax" min="0" max="30" step="0.5" />
+        </div>
+      </section>
+
+      <section class="group">
+        <h2 class="group-title">窗口</h2>
+        <label class="switch">
+          <input type="checkbox" id="c-ontop" />
+          <span class="track"><span class="knob"></span></span>
+          <span class="switch-text">始终置顶</span>
+        </label>
+        <label class="switch">
+          <input type="checkbox" id="c-through" />
+          <span class="track"><span class="knob"></span></span>
+          <span class="switch-text">空白处鼠标穿透</span>
+        </label>
+        <label class="switch">
+          <input type="checkbox" id="c-autostart" />
+          <span class="track"><span class="knob"></span></span>
+          <span class="switch-text">开机自启动</span>
+        </label>
+        <p class="hint">穿透时只有虫身拦点击，自启动重启后生效。</p>
+      </section>
+
+      <section class="group">
+        <h2 class="group-title">互动</h2>
+
+        <div class="field">
+          <div class="field-head">
+            <label>多久后提醒</label>
+            <output id="o-remind-min">15 分钟</output>
+          </div>
+          <div class="chips" id="remind-chips">
+            <button class="chip" data-min="5">5 分钟</button>
+            <button class="chip" data-min="15">15 分钟</button>
+            <button class="chip" data-min="25">25 分钟</button>
+            <button class="chip" data-min="45">45 分钟</button>
+            <button class="chip" data-min="60">1 小时</button>
+          </div>
+        </div>
+
+        <div class="field">
+          <div class="field-head">
+            <label for="i-remind-text">提醒内容</label>
+          </div>
+          <input type="text" id="i-remind-text" class="text-input" maxlength="20"
+                 placeholder="时间到了！" />
+        </div>
+
+        <button class="btn block" id="btn-remind-start">开始计时</button>
+      </section>
+
+    </div>
+
+    <footer class="footer">
+      <button class="btn" id="btn-recenter">回到屏幕中间</button>
+      <button class="btn" id="btn-pause">暂停活动</button>
+      <button class="btn ghost" id="btn-reset">恢复默认</button>
+    </footer>
+
+  </div>
+  <script src="panel.js"></script>
+</body>
+</html>

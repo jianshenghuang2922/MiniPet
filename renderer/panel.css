@@ -1,0 +1,503 @@
+/* MiniPet 控制台 —— 纸感浅色主题, 和黑白线稿的虫子同一套调性 */
+
+:root {
+  --bg:        #f2efe9;
+  --card:      #ffffff;
+  --ink:       #17160f;
+  --ink-2:     #5c574c;
+  --muted:     #9c9585;
+  --line:      #e5e0d4;
+  --line-2:    #d3ccbb;
+  --accent:    #c2703a;
+  --accent-soft: #f6e7dc;
+  --radius:    10px;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: 'Segoe UI', 'Microsoft YaHei', system-ui, -apple-system, sans-serif;
+  font-size: 13px;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.app {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
+
+/* ---------------------------------------------------------- 标题栏 */
+
+.titlebar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 40px;
+  padding: 0 8px 0 14px;
+  background: var(--card);
+  border-bottom: 1px solid var(--line);
+  -webkit-app-region: drag;
+  flex: none;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.brand-mark {
+  width: 14px;
+  height: 7px;
+  border-radius: 50% 50% 45% 45% / 70% 70% 30% 30%;
+  background: var(--ink);
+  position: relative;
+}
+
+.brand-mark::after {
+  content: '';
+  position: absolute;
+  right: -4px;
+  top: 1px;
+  width: 5px;
+  height: 3px;
+  border-radius: 0 60% 60% 0;
+  background: var(--ink);
+}
+
+.brand-text {
+  font-size: 12.5px;
+  font-weight: 600;
+  letter-spacing: .3px;
+}
+
+.win-btn {
+  -webkit-app-region: no-drag;
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.win-btn:hover {
+  background: #f0ece3;
+  color: var(--ink);
+}
+
+/* ---------------------------------------------------------- 预览舞台 */
+
+.stage {
+  position: relative;
+  /* 预览区。内容多起来以后这里是最能省的一块, 146 已经够虫子站住, 再矮就糊了 */
+  height: 146px;
+  flex: none;
+  background: #d9d3c7;
+  border-bottom: 1px solid var(--line-2);
+  overflow: hidden;
+}
+
+.stage video,
+.stage canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.stage video {
+  object-fit: cover;
+  transition: opacity .25s ease;
+}
+
+.stage.no-bg video { opacity: 0; }
+
+.stage canvas { pointer-events: none; }
+
+.stage-tag,
+.stage-toggle {
+  position: absolute;
+  top: 8px;
+  font-size: 10.5px;
+  line-height: 1;
+  padding: 5px 8px;
+  border-radius: 6px;
+  background: rgba(20, 18, 14, .55);
+  color: #fff;
+  backdrop-filter: blur(6px);
+  -webkit-app-region: no-drag;
+}
+
+.stage-tag {
+  left: 8px;
+  letter-spacing: .4px;
+  pointer-events: none;
+}
+
+.stage-toggle {
+  right: 8px;
+  border: none;
+  cursor: pointer;
+  opacity: .55;
+  font-family: inherit;
+}
+
+.stage-toggle:hover { opacity: 1; }
+.stage.no-bg .stage-toggle { opacity: 1; background: rgba(194, 112, 58, .85); }
+
+/* ---------------------------------------------------------- 内容区 */
+
+.body {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 4px 0 12px;
+}
+
+.body::-webkit-scrollbar { width: 10px; }
+.body::-webkit-scrollbar-thumb {
+  background: var(--line-2);
+  border-radius: 6px;
+  border: 3px solid var(--bg);
+}
+.body::-webkit-scrollbar-track { background: transparent; }
+
+.group {
+  background: var(--card);
+  margin: 8px 12px;
+  padding: 10px 14px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
+
+.group-title {
+  margin: 0 0 9px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1.6px;
+  color: var(--muted);
+  text-transform: uppercase;
+}
+
+.field + .field,
+.field + .switch,
+.switch + .field,
+.switch + .switch {
+  margin-top: 11px;
+}
+
+.field.indent {
+  padding-left: 12px;
+  border-left: 2px solid var(--line);
+}
+
+.field-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 7px;
+}
+
+.field-head label {
+  font-size: 12.5px;
+  color: var(--ink-2);
+}
+
+.field-head output {
+  font-variant-numeric: tabular-nums;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+/* ---------------------------------------------------------- 滑杆 */
+
+input[type=range] {
+  -webkit-appearance: none;
+  appearance: none;
+  display: block;
+  width: 100%;
+  height: 18px;
+  margin: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+input[type=range]::-webkit-slider-runnable-track {
+  height: 4px;
+  border-radius: 2px;
+  background: linear-gradient(to right,
+    var(--ink) 0%, var(--ink) var(--pct, 50%),
+    var(--line-2) var(--pct, 50%), var(--line-2) 100%);
+}
+
+input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 14px;
+  height: 14px;
+  margin-top: -5px;
+  border-radius: 50%;
+  background: #fff;
+  border: 2px solid var(--ink);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, .18);
+  transition: transform .12s ease;
+}
+
+input[type=range]:active::-webkit-slider-thumb {
+  transform: scale(1.15);
+}
+
+input[type=range].dim::-webkit-slider-runnable-track {
+  background: linear-gradient(to right,
+    var(--line-2) 0%, var(--line-2) var(--pct, 50%),
+    var(--line-2) var(--pct, 50%), var(--line-2) 100%);
+}
+
+input[type=range].dim::-webkit-slider-thumb {
+  border-color: var(--line-2);
+  box-shadow: none;
+}
+
+.field.indent input[type=range] + input[type=range] {
+  margin-top: 6px;
+}
+
+/* ---------------------------------------------------------- 预设按钮 */
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 9px;
+}
+
+.chip {
+  font-family: inherit;
+  font-size: 11.5px;
+  padding: 5px 10px;
+  border-radius: 20px;
+  border: 1px solid var(--line-2);
+  background: transparent;
+  color: var(--ink-2);
+  cursor: pointer;
+  transition: all .12s ease;
+}
+
+.chip:hover {
+  border-color: var(--ink);
+  color: var(--ink);
+}
+
+.chip.on {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--accent);
+  font-weight: 600;
+}
+
+/* ---------------------------------------------------------- 开关 */
+
+.switch {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+}
+
+.switch input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.track {
+  position: relative;
+  width: 36px;
+  height: 20px;
+  border-radius: 10px;
+  background: var(--line-2);
+  flex: none;
+  transition: background .16s ease;
+}
+
+.knob {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, .25);
+  transition: transform .16s cubic-bezier(.4, 0, .2, 1);
+}
+
+.switch input:checked + .track {
+  background: var(--accent);
+}
+
+.switch input:checked + .track .knob {
+  transform: translateX(16px);
+}
+
+.switch-text {
+  font-size: 12.5px;
+  color: var(--ink-2);
+}
+
+.switch input:checked ~ .switch-text {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.hint {
+  margin: 10px 0 0;
+  font-size: 11.5px;
+  line-height: 1.6;
+  color: var(--muted);
+}
+
+/* ---------------------------------------------------------- 顶部状态条（互动） */
+
+/* 常驻 flex:none, 不跟着 .body 滚 —— 定了个 45 分钟的提醒, 总不能让用户
+ * 每次想看还剩多久都得滚到底部去找。
+ */
+.remind-strip {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 7px 14px;
+  background: var(--card);
+  border-bottom: 1px solid var(--line);
+}
+
+.strip-badge {
+  flex: none;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: .5px;
+  padding: 3px 8px;
+  border-radius: 20px;
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.strip-text {
+  flex: 1 1 auto;
+  font-size: 11.5px;
+  line-height: 1.45;
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.strip-btn {
+  flex: none;
+  font-family: inherit;
+  font-size: 11.5px;
+  padding: 4px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--line-2);
+  background: #fff;
+  color: var(--ink-2);
+  cursor: pointer;
+}
+
+.strip-btn:hover {
+  border-color: var(--ink);
+  color: var(--ink);
+}
+
+.strip-btn[hidden] { display: none; }
+
+/* ---------------------------------------------------------- 底部按钮 */
+
+.footer {
+  flex: none;
+  display: flex;
+  gap: 8px;
+  padding: 10px 12px;
+  background: var(--card);
+  border-top: 1px solid var(--line);
+}
+
+.btn {
+  flex: 1;
+  font-family: inherit;
+  font-size: 12.5px;
+  padding: 9px 6px;
+  border-radius: 8px;
+  border: 1px solid var(--line-2);
+  background: #fff;
+  color: var(--ink);
+  cursor: pointer;
+  transition: all .12s ease;
+  white-space: nowrap;
+}
+
+.btn:hover {
+  border-color: var(--ink);
+  background: #faf8f3;
+}
+
+.btn:active {
+  transform: translateY(1px);
+}
+
+.btn.primary {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: #fff;
+}
+
+.btn.ghost {
+  color: var(--ink-2);
+}
+
+.btn.ghost:hover {
+  color: var(--ink);
+}
+
+/* 互动区里的整行按钮 */
+.btn.block {
+  display: block;
+  width: 100%;
+  margin-top: 12px;
+}
+
+/* ---------------------------------------------------------- 文本输入 */
+
+/* body 上是 user-select: none, 输入框得单独放开, 不然选不中字 */
+.text-input {
+  width: 100%;
+  font-family: inherit;
+  font-size: 12.5px;
+  padding: 7px 9px;
+  border: 1px solid var(--line-2);
+  border-radius: 7px;
+  background: #fff;
+  color: var(--ink);
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+.text-input::placeholder { color: var(--muted); }
+
+.text-input:focus {
+  outline: none;
+  border-color: var(--accent);
+}

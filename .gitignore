@@ -1,0 +1,9 @@
+# 依赖
+node_modules/
+
+# agent 内部工作状态（记忆日志等），不属于应用本身
+.workbuddy-ai/
+
+# 临时文件（截屏自检、探针中间产物）
+.tmp_*
+*.log

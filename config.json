@@ -1,0 +1,17 @@
+{
+  "petWidth": 132,
+  "speed": 55,
+  "wander": true,
+  "alwaysOnTop": true,
+  "shadow": true,
+  "shadowBlur": 9,
+  "clickThrough": true,
+  "focusable": false,
+  "idleMin": 2,
+  "idleMax": 7,
+  "opacity": 0.94,
+  "autoStart": false,
+  "remindAt": null,
+  "remindText": "时间到了！",
+  "disableGpu": false
+}

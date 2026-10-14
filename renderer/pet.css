@@ -1,0 +1,28 @@
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: transparent;
+  -webkit-user-select: none;
+  user-select: none;
+  cursor: default;
+}
+
+/* 这块 canvas 只有虫子那么大, 靠 translate3d 在整屏透明窗口里移动。
+   窗口本身永远不动, 所以不会闪。 */
+#pet {
+  position: absolute;
+  left: 0;
+  top: 0;
+  display: block;
+  background: transparent;
+  will-change: transform;
+  transform: translate3d(-9999px, -9999px, 0);
+  cursor: grab;
+}
+
+#pet.grabbing {
+  cursor: grabbing;
+}

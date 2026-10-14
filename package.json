@@ -1,0 +1,15 @@
+{
+  "name": "minipet",
+  "version": "1.0.0",
+  "description": "桌面宠物 —— 一只在桌面上蠕动的小虫子",
+  "main": "main.js",
+  "scripts": {
+    "start": "node tools/launch.js",
+    "build:assets": "python tools/build_assets.py"
+  },
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "electron": "^44.7.2"
+  }
+}
