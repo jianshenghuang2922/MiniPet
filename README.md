@@ -7,6 +7,8 @@
 到 [Releases](https://github.com/jianshenghuang2922/MiniPet/releases) 下载最新的
 `MiniPet-v1.0.0-win-x64.zip`，**解压到任意目录，双击 `MiniPet.exe` 即可**。
 
+> 直链：[MiniPet-v1.0.0-win-x64.zip](https://github.com/jianshenghuang2922/MiniPet/releases/download/v1.0.0/MiniPet-v1.0.0-win-x64.zip)（158.8 MB）
+
 - 免安装便携版，**不需要装 Node.js 或 Electron**
 - 系统要求：Windows 10 / 11 64 位
 - 首次启动如果桌面没反应，等两三秒——Electron 要起进程、首次生成 GPU 缓存
@@ -40,6 +42,22 @@ python tools/build_release.py    # 组装便携版并压成 build/MiniPet-v<版�
 打包不做安装包，而是直接复用 `node_modules/electron/dist` 里的运行时：复制一份、
 把 `electron.exe` 改名成 `MiniPet.exe`、用 `rcedit` 写入图标和版本信息、
 把应用代码塞进 `resources/app`，最后压成 zip。整个过程不联网。
+
+### 上传到 GitHub Releases
+
+```bash
+# 打 tag 推上去
+git tag -a v1.0.0 -m "MiniPet v1.0.0" && git push origin master --tags
+
+# 创建 Release 并上传 zip（token 从凭据管理器取，见下）
+TOKEN=$(printf "protocol=https\nhost=github.com\n\n" \
+  | git -c credential.helper=manager credential fill | awk -F= '/^password=/{print $2}')
+python tools/publish_release.py "$TOKEN"
+```
+
+`tools/publish_release.py` 会读 `build/release-notes.md` 当 Release 正文，
+把 zip 传成附件；Release 已存在时自动改成更新（先删旧附件再传新的）。
+沙箱/代理偶发 502 时脚本自己重试 8 次。
 
 
 ## 交互
@@ -273,6 +291,7 @@ tools/capture.py         DPI 感知截屏（单张 / 连拍）
 tools/verify.py          自检：运动检测 + 闪烁判定
 tools/make_icon.py       从精灵图生成 build/MiniPet.ico
 tools/build_release.py   组装 Windows 便携版 zip
+tools/publish_release.py 创建 GitHub Release 并上传 zip 附件
 tools/rcedit_set.js      给 exe 写图标和版本信息（被 build_release.py 调用）
 assets/pet-sheet.png     30 帧带 alpha 精灵图
 assets/pet.json          帧布局元数据
