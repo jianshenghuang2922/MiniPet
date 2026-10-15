@@ -171,6 +171,8 @@ if (cfg.disableGpu) {
 let win = null;
 let panel = null;
 let tray = null;
+let taskWin = null;
+let panelClosedAt = 0;   // 面板关闭时刻, 用来区分"用户点了任务栏"和"焦点被动甩过来"
 let paused = false;
 let meta = { frameWidth: 480, frameHeight: 211, columns: 6, rows: 5, frameCount: 30, fps: 30 };
 
@@ -430,7 +432,10 @@ function openPanel() {
     resizable: true,
     maximizable: false,
     fullscreenable: false,
-    skipTaskbar: false,
+    // 面板自己不占任务栏: 任务栏上永远只有一个 "MiniPet" 按钮(见 createTaskbarEntry),
+    // 点它就打开/前置本面板。否则 Win11 会把两个窗口合并成一个图标, 点下去先弹
+    // 缩略图选择框, 反而绕远。
+    skipTaskbar: true,
     title: 'MiniPet 控制选项',
     show: false,
     webPreferences: {
@@ -451,7 +456,7 @@ function openPanel() {
   panel.setMenu(null);
   panel.loadFile(path.join(ROOT, 'renderer', 'panel.html'));
   panel.once('ready-to-show', () => { panel.show(); panel.focus(); });
-  panel.on('closed', () => { panel = null; });
+  panel.on('closed', () => { panel = null; panelClosedAt = Date.now(); });
 }
 
 // ---------------------------------------------------------------- 窗口
@@ -504,7 +509,87 @@ function fitToWorkArea() {
   if (!win || win.isDestroyed()) return;
   const wa = primaryWorkArea();
   win.setBounds({ x: wa.x, y: wa.y, width: wa.width, height: wa.height });
+  positionTaskbarEntry();
   sendEnv();
+}
+
+// ---------------------------------------------------------------- 任务栏入口
+
+/**
+ * 桌宠主窗口是 skipTaskbar 的 —— 用户从任务栏根本找不到它, 也就没法"点任务栏图标
+ * 打开设置"。这里单独开一个**只为占一个任务栏按钮**的窗口:
+ *
+ *   - 1x1 像素、全透明、贴在工作区右下角 -> 肉眼看不见, 也挡不住任何东西
+ *   - 但它是个真实"可见"窗口, Windows 就会给它一个任务栏按钮, 标题 MiniPet
+ *   - 建完立刻最小化 -> 点按钮时从最小化恢复 -> restore 事件 -> 打开控制面板
+ *
+ * 为什么不直接给桌宠主窗口加任务栏按钮:
+ *   1. 主窗口默认 focusable:false(点虫子不抢当前应用焦点), 收不到 focus 事件;
+ *   2. 它是覆盖整屏的透明窗口, 任务栏缩略图会是一片空白, 鼠标悬停预览很怪。
+ *
+ * 为什么不用 hide(): Windows 上被隐藏的窗口**没有**任务栏按钮, 必须真的可见。
+ */
+function createTaskbarEntry() {
+  if (taskWin && !taskWin.isDestroyed()) return;
+
+  taskWin = new BrowserWindow({
+    // 贴住工作区右下角, 1x1 且全透明 —— 等同于不存在
+    x: -1,
+    y: -1,
+    width: 1,
+    height: 1,
+    frame: false,
+    transparent: true,
+    backgroundColor: '#00000000',
+    hasShadow: false,
+    resizable: false,
+    movable: false,
+    maximizable: false,
+    fullscreenable: false,
+    skipTaskbar: false,   // ← 关键: 要的就是这个任务栏按钮
+    title: 'MiniPet',
+    show: false,
+    webPreferences: {
+      contextIsolation: true,
+      nodeIntegration: false,
+      backgroundThrottling: false
+    }
+  });
+
+  taskWin.setMenu(null);
+  positionTaskbarEntry();
+  // Windows 会把窗口夹到最小跟踪尺寸(实测 32x37), 做不到真正的 1x1。万一它没被
+  // 最小化、就那么贴在右下角, 这 32x37 会吃掉鼠标点击 —— 所以让它整体穿透。
+  // 穿透只影响窗口自身的鼠标输入, 任务栏按钮是 shell 的东西, 照常能点。
+  taskWin.setIgnoreMouseEvents(true);
+  taskWin.loadURL('data:text/html;charset=utf-8,' + encodeURIComponent(
+    '<!doctype html><meta charset="utf-8"><title>MiniPet</title>' +
+    '<body style="margin:0;background:transparent"></body>'));
+  // 让它保持"最小化"状态: 任务栏按钮照样在(最小化窗口一定带按钮), 但窗口永远
+  // 不是前台窗口 —— 这样就不会出现"控制面板关掉后 Windows 把焦点甩过来、又自动
+  // 弹开面板"的死循环。
+  taskWin.showInactive();
+  taskWin.minimize();
+
+  // 点任务栏按钮 -> 窗口从最小化恢复 -> 打开控制面板, 然后立刻再最小化回去
+  taskWin.on('restore', () => {
+    openPanel();
+    if (taskWin && !taskWin.isDestroyed()) taskWin.minimize();
+  });
+  // 兜底: 某些情况下点击只给 focus 不给 restore
+  taskWin.on('focus', () => {
+    if (Date.now() - panelClosedAt < 800) return;  // 面板刚关, 这个焦点是被动甩来的
+    openPanel();
+  });
+
+  taskWin.on('closed', () => { taskWin = null; });
+}
+
+/** 把任务栏入口窗口钉回工作区右下角(显示器变化后要重新钉一次)。 */
+function positionTaskbarEntry() {
+  if (!taskWin || taskWin.isDestroyed()) return;
+  const wa = primaryWorkArea();
+  taskWin.setBounds({ x: wa.x + wa.width - 1, y: wa.y + wa.height - 1, width: 1, height: 1 });
 }
 
 // ---------------------------------------------------------------- 菜单
@@ -716,6 +801,7 @@ if (!gotLock) {
     readMeta();
     setupIpc();
     createWindow();
+    createTaskbarEntry();
     createTray();
     if (process.argv.includes('--panel')) openPanel();
     // 上次开着自启动退出的, 这次把系统登录项对齐一下, 防止有人手动清了注册表
