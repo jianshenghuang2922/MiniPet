@@ -3,10 +3,11 @@
 """创建 GitHub Release 并上传便携版 zip 资源。
 
 用法:
-    python tools/publish_release.py <token>
+    python tools/publish_release.py [token]
 
-读 build/release-notes.md 作为 Release 正文, 上传 build/MiniPet-v<ver>-win-x64.zip。
-沙箱代理偶发 502, 所有请求都带重试。
+版本号从 package.json 读, 正文读 build/release-notes.md,
+上传 build/MiniPet-v<ver>-win-x64.zip。沙箱代理偶发 502, 所有请求都带重试。
+不传 token 时自己从 git 凭据管理器取。
 """
 import json
 import os
@@ -18,12 +19,17 @@ import urllib.request
 
 OWNER = 'jianshenghuang2922'
 REPO = 'MiniPet'
-TAG = 'v1.0.0'
-RELEASE_NAME = 'MiniPet v1.0.0 — 一只在桌面上蠕动的小虫子'
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+with open(os.path.join(ROOT, 'package.json'), 'r', encoding='utf-8') as f:
+    VERSION = json.load(f)['version']
+
+TAG = 'v' + VERSION
+RELEASE_NAME = 'MiniPet v%s' % VERSION
+
 NOTES = os.path.join(ROOT, 'build', 'release-notes.md')
-ASSET = os.path.join(ROOT, 'build', 'MiniPet-v1.0.0-win-x64.zip')
+ASSET = os.path.join(ROOT, 'build', 'MiniPet-v%s-win-x64.zip' % VERSION)
 
 API = 'https://api.github.com'
 MAX_TRY = 8

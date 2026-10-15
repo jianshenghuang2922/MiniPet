@@ -4,10 +4,11 @@
 
 ## 下载（普通用户看这里）
 
-到 [Releases](https://github.com/jianshenghuang2922/MiniPet/releases) 下载最新的
-`MiniPet-v1.0.0-win-x64.zip`，**解压到任意目录，双击 `MiniPet.exe` 即可**。
+到 [Releases](https://github.com/jianshenghuang2922/MiniPet/releases/latest) 下载最新的
+`MiniPet-v<版本>-win-x64.zip`，**解压到任意目录，双击 `MiniPet.exe` 即可**。
 
-> 直链：[MiniPet-v1.0.0-win-x64.zip](https://github.com/jianshenghuang2922/MiniPet/releases/download/v1.0.0/MiniPet-v1.0.0-win-x64.zip)（158.8 MB）
+> 固定直链（永远指向最新版）：
+> [releases/latest](https://github.com/jianshenghuang2922/MiniPet/releases/latest)
 
 - 免安装便携版，**不需要装 Node.js 或 Electron**
 - 系统要求：Windows 10 / 11 64 位
@@ -47,7 +48,7 @@ python tools/build_release.py    # 组装便携版并压成 build/MiniPet-v<版�
 
 ```bash
 # 打 tag 推上去
-git tag -a v1.0.0 -m "MiniPet v1.0.0" && git push origin master --tags
+git tag -a v1.0.1 -m "MiniPet v1.0.1" && git push origin master --tags
 
 # 创建 Release 并上传 zip（token 从凭据管理器取，见下）
 TOKEN=$(printf "protocol=https\nhost=github.com\n\n" \
