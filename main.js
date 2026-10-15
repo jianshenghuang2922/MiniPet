@@ -77,14 +77,45 @@ function crashExit(reason) {
   app.exit(CRASH_EXIT_CODE);
 }
 
+// 宠物渲染进程死了之后不能只是"退出重来"——在 --no-sandbox 降级实例里
+// crashExit 是 no-op, 窗口会变成一个"死壳": 还挂在桌面上, 但再也不画东西,
+// 定时提醒命令发进去也没人接。所以这里直接把窗口重建一个。
+let petRebuilds = 0;
+let lastRebuildAt = 0;
+
+function rebuildPetWindow(reason) {
+  const now = Date.now();
+  if (now - lastRebuildAt > 60000) petRebuilds = 0; // 距上次重建超过 1 分钟就清零
+  lastRebuildAt = now;
+  if (petRebuilds >= 3) {
+    console.error('[MiniPet] 宠物窗口 1 分钟内反复崩溃，放弃重建');
+    crashExit('渲染进程反复崩溃');
+    return;
+  }
+  petRebuilds += 1;
+  console.error('[MiniPet] 宠物渲染进程退出(' + reason + ')，重建窗口 #' + petRebuilds);
+  const old = win;
+  win = null;
+  if (old && !old.isDestroyed()) {
+    try { old.destroy(); } catch (err) { /* 已经没了就算了 */ }
+  }
+  createWindow();
+}
+
 app.on('child-process-gone', (_e, details) => {
   if (details.type === 'GPU' && details.reason !== 'clean-exit') {
     crashExit('GPU 进程异常退出');
   }
 });
 
-app.on('render-process-gone', (_e, _wc, details) => {
-  if (details.reason !== 'clean-exit') crashExit('渲染进程崩溃');
+app.on('render-process-gone', (_e, wc, details) => {
+  if (details.reason === 'clean-exit') return;
+  // 只有宠物窗口值得重建; 控制面板挂了用户重新打开就行
+  if (win && !win.isDestroyed() && wc === win.webContents) {
+    rebuildPetWindow(details.reason);
+  } else {
+    console.error('[MiniPet] 非宠物窗口的渲染进程退出(' + details.reason + ')，忽略');
+  }
 });
 
 // ---------------------------------------------------------------- 配置

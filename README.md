@@ -207,12 +207,18 @@ python tools/build_assets.py D:\视频素材\别的视频.mp4
 这台机器上 Chromium 的 GPU 进程在沙箱里会直接崩（`exit_code 0xC0000005`，
 随后 `FATAL: GPU process isn't usable. Goodbye.`），用户看到的现象是"双击了但什么都没发生"。
 
-处理方式是**启动器兜底**，而不是让人自己去关硬件加速：
+处理方式是**启动器兜底 + 窗口级自愈**，而不是让人自己去关硬件加速：
 
-- `main.js` 监听 `child-process-gone` / `render-process-gone`，发现 GPU 进程或渲染进程异常退出，
-  就以退出码 **99** 退出
+- `main.js` 监听 `child-process-gone`，发现 **GPU 进程**异常退出就以退出码 **99** 退出
 - `tools/launch.js` 看到 99，自动带 `--no-sandbox` 重新拉起一次（并打上 `--minipet-nosandbox`
   标记，避免无休止重试）
+- `main.js` 另外监听 `render-process-gone`：如果是**宠物窗口的渲染进程**挂了，直接**销毁重建**
+  这个窗口（而不是整个应用退出）。因为降级到 `--no-sandbox` 之后 `crashExit` 已经是 no-op，
+  再"退出重试"没人接；不重建的话窗口会变成一个**死壳**——还挂在桌面上，但再也不画东西，
+  定时提醒命令发进去也石沉大海。重建 1 分钟内最多 3 次，超过才放弃。
+
+> 用户报过"定时到了没气泡"，根因就是渲染进程挂死成了死壳：命令发了，没人接。气泡逻辑本身没问题
+> （用 DevTools 协议直接调 `say()` 能正常出气泡），缺的是渲染进程挂掉后的恢复。
 
 不在应用内用 `app.relaunch()` 是因为新进程会和旧进程的单实例锁抢时序，结果是被顶掉、什么都不剩。
 
