@@ -7,3 +7,6 @@ node_modules/
 # 临时文件（截屏自检、探针中间产物）
 .tmp_*
 *.log
+
+# 打包产物（便携版 zip 走 GitHub Releases，不进仓库）
+build/

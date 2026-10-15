@@ -19,6 +19,7 @@
 const { app, BrowserWindow, ipcMain, Menu, Tray, screen, nativeImage, shell } = require('electron');
 const path = require('path');
 const fs = require('fs');
+const { spawn } = require('child_process');
 
 const ROOT = __dirname;
 const CONFIG_PATH = path.join(ROOT, 'config.json');
@@ -73,8 +74,27 @@ const REMIND_PRESETS = [
 function crashExit(reason) {
   if (crashing || alreadyFellBack) return;
   crashing = true;
-  console.error('[MiniPet] ' + reason + '，交给启动器重试');
-  app.exit(CRASH_EXIT_CODE);
+  console.error('[MiniPet] ' + reason);
+  if (app.isPackaged) {
+    // 打包版没有 tools/launch.js 这个外部启动器, 自己带 --no-sandbox 重来一次。
+    // 不用 app.relaunch: 实测在这个 GPU 崩溃场景下它没把新进程拉起来。
+    // 直接 detached spawn 自己的 exe, 但**必须先释放单实例锁**, 否则新进程会被
+    // 旧进程还没释放的锁顶掉、直接退出。
+    console.error('[MiniPet] 打包版: 带 --no-sandbox 自行重启');
+    const args = process.argv.slice(1).filter((a) => a !== '--no-sandbox')
+      .concat(['--no-sandbox', NOSANDBOX_FLAG]);
+    try { app.releaseSingleInstanceLock(); } catch (err) { /* 没锁就算了 */ }
+    try {
+      const child = spawn(process.execPath, args, { detached: true, stdio: 'ignore' });
+      child.unref();
+    } catch (err) {
+      console.error('[MiniPet] 重启失败:', err.message);
+    }
+    app.exit(0);
+  } else {
+    console.error('[MiniPet] 开发态: 交给 tools/launch.js 重试');
+    app.exit(CRASH_EXIT_CODE);
+  }
 }
 
 // 宠物渲染进程死了之后不能只是"退出重来"——在 --no-sandbox 降级实例里

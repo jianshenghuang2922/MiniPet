@@ -5,11 +5,14 @@
   "main": "main.js",
   "scripts": {
     "start": "node tools/launch.js",
-    "build:assets": "python tools/build_assets.py"
+    "build:assets": "python tools/build_assets.py",
+    "build:icon": "python tools/make_icon.py",
+    "build:release": "python tools/build_release.py"
   },
   "author": "",
   "license": "MIT",
   "devDependencies": {
-    "electron": "^44.7.2"
+    "electron": "^44.7.2",
+    "rcedit": "^5.0.2"
   }
 }

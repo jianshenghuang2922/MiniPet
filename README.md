@@ -2,7 +2,18 @@
 
 一只在桌面上爬来爬去的黑白线稿小虫子。素材来自 `D:\视频素材\蠕动.mp4`。
 
-## 跑起来
+## 下载（普通用户看这里）
+
+到 [Releases](https://github.com/jianshenghuang2922/MiniPet/releases) 下载最新的
+`MiniPet-v1.0.0-win-x64.zip`，**解压到任意目录，双击 `MiniPet.exe` 即可**。
+
+- 免安装便携版，**不需要装 Node.js 或 Electron**
+- 系统要求：Windows 10 / 11 64 位
+- 首次启动如果桌面没反应，等两三秒——Electron 要起进程、首次生成 GPU 缓存
+- 想卸载：直接删掉整个解压出来的文件夹即可（配置在 `%APPDATA%\minipet\config.json`，
+  需要的话一并删除）
+
+## 跑起来（开发者 / 从源码）
 
 ```bash
 npm install     # 首次
@@ -18,6 +29,18 @@ Windows 上也可以直接双击 `start.bat`。
 > `npm start` 走的是 `tools/launch.js` 而不是直接调 electron，因为这里要处理两件事：
 > 清掉环境里残留的 `ELECTRON_RUN_AS_NODE`（否则 Electron 会退化成普通 Node 跑），
 > 以及崩溃后自动带 `--no-sandbox` 重试一次（见下方「关于 disableGpu」）。
+
+### 打包发布版
+
+```bash
+python tools/make_icon.py        # 生成 build/MiniPet.ico
+python tools/build_release.py    # 组装便携版并压成 build/MiniPet-v<版本>-win-x64.zip
+```
+
+打包不做安装包，而是直接复用 `node_modules/electron/dist` 里的运行时：复制一份、
+把 `electron.exe` 改名成 `MiniPet.exe`、用 `rcedit` 写入图标和版本信息、
+把应用代码塞进 `resources/app`，最后压成 zip。整个过程不联网。
+
 
 ## 交互
 
@@ -209,9 +232,13 @@ python tools/build_assets.py D:\视频素材\别的视频.mp4
 
 处理方式是**启动器兜底 + 窗口级自愈**，而不是让人自己去关硬件加速：
 
-- `main.js` 监听 `child-process-gone`，发现 **GPU 进程**异常退出就以退出码 **99** 退出
-- `tools/launch.js` 看到 99，自动带 `--no-sandbox` 重新拉起一次（并打上 `--minipet-nosandbox`
-  标记，避免无休止重试）
+- `main.js` 监听 `child-process-gone`，发现 **GPU 进程**异常退出就重试：
+  - **开发态**：以退出码 **99** 退出，交给外部启动器
+  - **打包版**：没有外部启动器，自己 `releaseSingleInstanceLock()` + detached
+    `spawn(process.execPath, [...'--no-sandbox'])` 重启（不先释放单实例锁的话，
+    新进程会被还没退出的旧进程顶掉）
+- `tools/launch.js`（仅开发态）看到 99，自动带 `--no-sandbox` 重新拉起一次
+  （并打上 `--minipet-nosandbox` 标记，避免无休止重试）
 - `main.js` 另外监听 `render-process-gone`：如果是**宠物窗口的渲染进程**挂了，直接**销毁重建**
   这个窗口（而不是整个应用退出）。因为降级到 `--no-sandbox` 之后 `crashExit` 已经是 no-op，
   再"退出重试"没人接；不重建的话窗口会变成一个**死壳**——还挂在桌面上，但再也不画东西，
@@ -219,8 +246,12 @@ python tools/build_assets.py D:\视频素材\别的视频.mp4
 
 > 用户报过"定时到了没气泡"，根因就是渲染进程挂死成了死壳：命令发了，没人接。气泡逻辑本身没问题
 > （用 DevTools 协议直接调 `say()` 能正常出气泡），缺的是渲染进程挂掉后的恢复。
+>
+> 打包版第一版还漏了 GPU 崩溃自愈——`crashExit` 打印"交给启动器重试"，可打包版根本没有启动器，
+> 于是双击后直接没反应。现在是打包版自己重启。
 
-不在应用内用 `app.relaunch()` 是因为新进程会和旧进程的单实例锁抢时序，结果是被顶掉、什么都不剩。
+不在应用内用 `app.relaunch()` 是因为实测在这个 GPU 崩溃场景下它没把新进程拉起来，
+而且新进程会和旧进程的单实例锁抢时序。
 
 `disableGpu` 默认 `false`（即用硬件加速）。如果画面出现异常，可以改成 `true` 强制走软件渲染；
 2D 精灵图 + CSS transform 用软件渲染完全够用，实测渲染循环跑到 240Hz、动画稳定 30fps。
@@ -236,12 +267,16 @@ renderer/pet.css
 renderer/panel.html      控制选项界面
 renderer/panel.css       控制选项样式
 renderer/panel.js        控制选项逻辑 + 预览动画 + 提醒交互
-tools/launch.js          启动器：清环境变量、崩溃后自动重试
+tools/launch.js          启动器：清环境变量、崩溃后自动重试（仅开发态）
 tools/build_assets.py    视频 → 精灵图
 tools/capture.py         DPI 感知截屏（单张 / 连拍）
 tools/verify.py          自检：运动检测 + 闪烁判定
+tools/make_icon.py       从精灵图生成 build/MiniPet.ico
+tools/build_release.py   组装 Windows 便携版 zip
+tools/rcedit_set.js      给 exe 写图标和版本信息（被 build_release.py 调用）
 assets/pet-sheet.png     30 帧带 alpha 精灵图
 assets/pet.json          帧布局元数据
 assets/tray.png          托盘图标
 assets/preview-bg.mp4    控制选项预览区背景
+LICENSE                  MIT
 ```
